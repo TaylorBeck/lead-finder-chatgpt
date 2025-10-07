@@ -10,10 +10,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List
+import os
 
 import mcp.types as types
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, Field, ValidationError
+
+# Configuration - use environment variable for widget base URL
+# For development: http://localhost:4444
+# For production: https://your-railway-app.up.railway.app
+WIDGET_BASE_URL = os.getenv("WIDGET_BASE_URL", "http://localhost:4444")
 
 # Widget definitions
 @dataclass(frozen=True)
@@ -28,6 +34,15 @@ class LeadFinderWidget:
     response_text: str
 
 
+def create_widget_html(component_name: str, root_id: str) -> str:
+    """Generate widget HTML with environment-aware URLs."""
+    return (
+        f'<div id="{root_id}"></div>\n'
+        f'<link rel="stylesheet" href="{WIDGET_BASE_URL}/{component_name}.css">\n'
+        f'<script type="module" src="{WIDGET_BASE_URL}/{component_name}.js"></script>'
+    )
+
+
 widgets: List[LeadFinderWidget] = [
     LeadFinderWidget(
         identifier="find-business-leads",
@@ -35,11 +50,7 @@ widgets: List[LeadFinderWidget] = [
         template_uri="ui://widget/lead-finder.html",
         invoking="Searching for high-quality business leads",
         invoked="Found business leads",
-        html=(
-            '<div id="lead-finder-root"></div>\n'
-            '<link rel="stylesheet" href="http://localhost:4444/lead-finder.css">\n'
-            '<script type="module" src="http://localhost:4444/lead-finder.js"></script>'
-        ),
+        html=create_widget_html("lead-finder", "lead-finder-root"),
         response_text="Found business leads with AI-powered analysis!",
     ),
     LeadFinderWidget(
@@ -48,11 +59,7 @@ widgets: List[LeadFinderWidget] = [
         template_uri="ui://widget/lead-dashboard.html",
         invoking="Generating analytics dashboard",
         invoked="Dashboard ready",
-        html=(
-            '<div id="lead-dashboard-root"></div>\n'
-            '<link rel="stylesheet" href="http://localhost:4444/lead-dashboard.css">\n'
-            '<script type="module" src="http://localhost:4444/lead-dashboard.js"></script>'
-        ),
+        html=create_widget_html("lead-dashboard", "lead-dashboard-root"),
         response_text="Analytics dashboard generated!",
     ),
     LeadFinderWidget(
@@ -61,11 +68,7 @@ widgets: List[LeadFinderWidget] = [
         template_uri="ui://widget/crm-export.html",
         invoking="Preparing CRM export",
         invoked="Export ready",
-        html=(
-            '<div id="crm-export-root"></div>\n'
-            '<link rel="stylesheet" href="http://localhost:4444/crm-export.css">\n'
-            '<script type="module" src="http://localhost:4444/crm-export.js"></script>'
-        ),
+        html=create_widget_html("crm-export", "crm-export-root"),
         response_text="CRM export prepared!",
     ),
 ]
@@ -79,19 +82,14 @@ WIDGETS_BY_URI: Dict[str, LeadFinderWidget] = {w.template_uri: w for w in widget
 # Input schemas
 class LeadSearchInput(BaseModel):
     """Input schema for find_business_leads tool."""
-    search_terms: List[str] = Field(..., description="Keywords to search for")
-    industry_focus: str | None = Field(None, description="Industry to focus on")
-    intent_keywords: List[str] = Field(
-        default=["looking for", "need", "seeking", "want to buy"],
-        description="Intent signals to look for"
-    )
-    platforms: List[str] = Field(
-        default=["reddit", "twitter", "linkedin"],
-        description="Social platforms to search"
-    )
-    geographic_filter: str | None = Field(None, description="Geographic location")
-    company_size_filter: str | None = Field(None, description="Company size filter")
-    max_leads: int = Field(default=50, description="Maximum leads to return")
+    region: str | None = Field(None, description="Geographic region to target")
+    industry: str | None = Field(None, description="Industry or sector to focus on")
+    contact_roles: List[str] | None = Field(None, description="Target contact roles/titles")
+    company_stage: str | None = Field(None, description="Company funding stage")
+    company_size: str | None = Field(None, description="Company size range")
+    intent_signals: List[str] | None = Field(None, description="Purchase intent signals to detect")
+    output: str = Field(default="summary", description="Output format: summary, detailed_table, compact_list")
+    limit: int = Field(default=20, description="Maximum number of leads to return")
 
 
 class EnrichmentInput(BaseModel):
@@ -319,42 +317,47 @@ async def _list_tools() -> List[types.Tool]:
         inputSchema={
             "type": "object",
             "properties": {
-                "search_terms": {
+                "region": {
+                    "type": "string",
+                    "description": "Geographic region to target (e.g., 'Dallas, TX', 'San Francisco Bay Area')"
+                },
+                "industry": {
+                    "type": "string",
+                    "description": "Industry or sector to focus on (e.g., 'B2B SaaS', 'Healthcare', 'FinTech')"
+                },
+                "contact_roles": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Keywords to search for business leads"
+                    "description": "Target contact roles/titles (e.g., 'CEO', 'VP Sales', 'Head of Marketing')"
                 },
-                "industry_focus": {
+                "company_stage": {
                     "type": "string",
-                    "description": "Industry to focus on (optional)"
+                    "description": "Company funding stage (e.g., 'Seed to Series B', 'Series C+', 'Pre-seed')"
                 },
-                "intent_keywords": {
+                "company_size": {
+                    "type": "string",
+                    "description": "Company size range (e.g., '1-50', '51-200', '1-500')"
+                },
+                "intent_signals": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Intent signals to look for",
-                    "default": ["looking for", "need", "seeking", "want to buy"]
+                    "description": "Purchase intent signals to detect (e.g., 'actively hiring', 'recently funded', 'expanding team')"
                 },
-                "platforms": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Social platforms to search",
-                    "default": ["reddit", "twitter", "linkedin"]
-                },
-                "geographic_filter": {
+                "output": {
                     "type": "string",
-                    "description": "Geographic location filter (optional)"
+                    "enum": ["summary", "detailed_table", "compact_list"],
+                    "description": "Output format preference",
+                    "default": "summary"
                 },
-                "company_size_filter": {
-                    "type": "string",
-                    "description": "Company size filter (optional)"
-                },
-                "max_leads": {
+                "limit": {
                     "type": "integer",
                     "description": "Maximum number of leads to return",
-                    "default": 50
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100
                 }
             },
-            "required": ["search_terms"],
+            "required": [],
             "additionalProperties": False
         },
         _meta=_tool_meta(WIDGETS_BY_ID["find-business-leads"]),
@@ -482,11 +485,20 @@ async def _call_tool_request(req: types.CallToolRequest) -> types.ServerResult:
             # Validate and parse input
             payload = LeadSearchInput.model_validate(arguments)
             
+            # Generate search terms from the input
+            search_terms = []
+            if payload.industry:
+                search_terms.append(payload.industry)
+            if payload.intent_signals:
+                search_terms.extend(payload.intent_signals)
+            if not search_terms:
+                search_terms = ["business leads"]
+            
             # Generate mock leads
             leads = generate_mock_leads(
-                search_terms=payload.search_terms,
-                industry_focus=payload.industry_focus,
-                max_leads=payload.max_leads
+                search_terms=search_terms,
+                industry_focus=payload.industry,
+                max_leads=payload.limit
             )
             
             # Calculate metrics
@@ -524,15 +536,14 @@ async def _call_tool_request(req: types.CallToolRequest) -> types.ServerResult:
                         "leads": leads,
                         "metrics": metrics,
                         "search_parameters": {
-                            "keywords": payload.search_terms,
-                            "industry": payload.industry_focus,
-                            "platforms": payload.platforms,
-                            "intent_keywords": payload.intent_keywords,
-                            "filters_applied": {
-                                "geographic": payload.geographic_filter,
-                                "company_size": payload.company_size_filter,
-                                "min_score": 0.6
-                            }
+                            "region": payload.region,
+                            "industry": payload.industry,
+                            "contact_roles": payload.contact_roles,
+                            "company_stage": payload.company_stage,
+                            "company_size": payload.company_size,
+                            "intent_signals": payload.intent_signals,
+                            "output": payload.output,
+                            "limit": payload.limit
                         },
                         "generated_at": datetime.now().isoformat()
                     },
