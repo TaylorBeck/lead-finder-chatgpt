@@ -155,38 +155,35 @@ html=(
 
 ## 📦 Deployment
 
-### Option 1: Railway (Recommended)
+### 🚀 Quick Deploy to Railway (Recommended)
 
-```bash
-# Server deployment
-cd lead-finder-server
-railway init
-railway deploy
+Deploy both MCP server and UI to Railway in under 5 minutes:
 
-# Host UI assets on Railway static serving or CDN
-```
+**📖 See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete step-by-step instructions**
 
-### Option 2: Fly.io
+Or use the quick reference: [RAILWAY-QUICKSTART.md](./RAILWAY-QUICKSTART.md)
 
-```bash
-cd lead-finder-server
-fly launch
-fly deploy
-```
+**Why Railway?**
+- ✅ Free tier available
+- ✅ Automatic HTTPS
+- ✅ Git-based deployments
+- ✅ Simple environment variables
+- ✅ One platform for both services
 
-### Option 3: DigitalOcean
+**Quick Summary:**
+1. Deploy UI service → Get URL
+2. Deploy MCP server with `WIDGET_BASE_URL=<ui-url>`
+3. Connect to ChatGPT with MCP endpoint
+4. Start testing!
 
-Use App Platform with the provided configuration.
+### Other Deployment Options
 
-### Hosting UI Assets
+- **Vercel + Render**: UI on Vercel, Server on Render
+- **Fly.io**: Docker-based deployment
+- **Cloud Run**: Google Cloud serverless
+- **DigitalOcean**: App Platform
 
-**Development**: Use local dev server (`http://localhost:4444`)
-
-**Production Options**:
-1. Cloudflare CDN
-2. AWS S3 + CloudFront
-3. Vercel Edge Network
-4. Railway static serving
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for all options and detailed guides.
 
 ## 🔑 Environment Variables
 
@@ -233,10 +230,12 @@ ngrok http 8000
 
 ## 📚 Documentation
 
+- **🚀 Deployment Guide**: [DEPLOYMENT.md](./DEPLOYMENT.md) - Complete Railway deployment walkthrough
+- **⚡ Quick Start**: [RAILWAY-QUICKSTART.md](./RAILWAY-QUICKSTART.md) - 5-minute deployment
+- **🏗️ Architecture**: [ARCHITECTURE.md](./ARCHITECTURE.md) - Deep dive into how everything works
 - **Server README**: `lead-finder-server/README.md`
 - **UI README**: `lead-finder-ui/README.md`
-- **Implementation Plan**: `../PLAN.md`
-- **Apps SDK Docs**: `../apps-sdk/`
+- **Apps SDK Docs**: `apps-sdk/` - OpenAI Apps SDK documentation
 
 ## 🎯 Next Steps
 
