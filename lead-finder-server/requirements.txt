@@ -1,0 +1,14 @@
+# FastMCP and MCP SDK
+mcp>=1.0.0
+fastmcp>=0.1.0
+
+# Web framework
+uvicorn[standard]>=0.27.0
+starlette>=0.36.0
+
+# Data validation
+pydantic>=2.0.0
+
+# Type hints (Python 3.9+ compatibility)
+typing-extensions>=4.9.0
+
