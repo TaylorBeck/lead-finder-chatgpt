@@ -684,6 +684,16 @@ mcp._mcp_server.request_handlers[types.ReadResourceRequest] = _handle_read_resou
 # Create FastAPI app
 app = mcp.streamable_http_app()
 
+# Add health check endpoint for Railway
+@app.get("/")
+async def health_check():
+    """Health check endpoint for Railway and monitoring."""
+    return {
+        "status": "healthy",
+        "service": "business-lead-finder-mcp",
+        "mcp_endpoint": "/mcp"
+    }
+
 # Add CORS middleware
 try:
     from starlette.middleware.cors import CORSMiddleware
