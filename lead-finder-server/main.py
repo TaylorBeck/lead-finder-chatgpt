@@ -685,14 +685,19 @@ mcp._mcp_server.request_handlers[types.ReadResourceRequest] = _handle_read_resou
 app = mcp.streamable_http_app()
 
 # Add health check endpoint for Railway
-@app.get("/")
-async def health_check():
+from starlette.responses import JSONResponse
+from starlette.routing import Route
+
+async def health_check(request):
     """Health check endpoint for Railway and monitoring."""
-    return {
+    return JSONResponse({
         "status": "healthy",
         "service": "business-lead-finder-mcp",
         "mcp_endpoint": "/mcp"
-    }
+    })
+
+# Add the health check route to the app
+app.routes.insert(0, Route("/", health_check))
 
 # Add CORS middleware
 try:
